@@ -136,6 +136,7 @@ const ThesisManagementTable = ({ theses, isLoading }: ThesisManagementTableProps
             <TableHead className="font-semibold">Authors</TableHead>
             <TableHead className="font-semibold">Program</TableHead>
             <TableHead className="font-semibold">Year</TableHead>
+            <TableHead className="font-semibold">Shelf Location</TableHead>
             <TableHead className="text-right font-semibold">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -157,6 +158,9 @@ const ThesisManagementTable = ({ theses, isLoading }: ThesisManagementTableProps
               </TableCell>
               <TableCell>
                 <div className="text-sm">{thesis.year}</div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">{thesis.shelfLocation || 'N/A'}</div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end gap-2">

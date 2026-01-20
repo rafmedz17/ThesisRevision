@@ -23,6 +23,7 @@ export interface Thesis {
   // dateSubmitted: string;
   // keywords: string[];
   pdfUrl?: string;
+  shelfLocation?: string;
   // coverImageUrl?: string;
   // status: 'published' | 'draft' | 'under-review';
   // downloadCount: number;

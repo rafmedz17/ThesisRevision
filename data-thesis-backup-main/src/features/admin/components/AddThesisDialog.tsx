@@ -23,6 +23,7 @@ const thesisSchema = z.object({
   program: z.string().min(1, 'Program is required'),
   year: z.number().min(2000).max(new Date().getFullYear() + 1),
   abstract: z.string().min(10, 'Abstract must be at least 10 characters'),
+  shelfLocation: z.string().optional(),
 });
 
 type ThesisFormData = z.infer<typeof thesisSchema>;
@@ -54,6 +55,7 @@ const AddThesisDialog = ({ open, onOpenChange, department }: AddThesisDialogProp
       program: '',
       year: currentYear,
       abstract: '',
+      shelfLocation: '',
     },
   });
 
@@ -80,6 +82,7 @@ const AddThesisDialog = ({ open, onOpenChange, department }: AddThesisDialogProp
       formData.append('department', department);
       formData.append('program', data.program);
       formData.append('year', data.year.toString());
+      formData.append('shelfLocation', data.shelfLocation);
 
       if (data.file) {
         formData.append('pdf', data.file);
@@ -303,6 +306,24 @@ const AddThesisDialog = ({ open, onOpenChange, department }: AddThesisDialogProp
                     <Textarea 
                       placeholder="Enter thesis abstract" 
                       className="min-h-[120px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Shelf Location */}
+            <FormField
+              control={form.control}
+              name="shelfLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shelf Location</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter shelf location (e.g., Shelf A-1)" 
                       {...field} 
                     />
                   </FormControl>

@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, Calendar, Eye } from "lucide-react";
+import { Users, BookOpen, Calendar, Eye, MapPin } from "lucide-react";
 import { Thesis } from "@/types/thesis";
 
 interface ThesisCardProps {
@@ -39,6 +39,12 @@ const ThesisCard = ({ thesis, onClick }: ThesisCardProps) => {
               <Calendar className="w-4 h-4" />
               <span>{thesis.year}</span>
             </div>
+            {thesis.shelfLocation && (
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                <span>{thesis.shelfLocation}</span>
+              </div>
+            )}
           </div>
         </div>
 

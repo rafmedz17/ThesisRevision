@@ -24,6 +24,7 @@ const thesisSchema = z.object({
   program: z.string().min(1, 'Program is required'),
   year: z.number().min(2000).max(new Date().getFullYear() + 1),
   abstract: z.string().min(10, 'Abstract must be at least 50 characters'),
+  shelfLocation: z.string().optional(),
 });
 
 type ThesisFormData = z.infer<typeof thesisSchema>;
@@ -59,6 +60,7 @@ const EditThesisDialog = ({ thesis, open, onOpenChange }: EditThesisDialogProps)
       program: '',
       year: currentYear,
       abstract: '',
+      shelfLocation: '',
     },
   });
 
@@ -72,6 +74,7 @@ const EditThesisDialog = ({ thesis, open, onOpenChange }: EditThesisDialogProps)
         program: thesis.program,
         year: thesis.year,
         abstract: thesis.abstract,
+        shelfLocation: thesis.shelfLocation || '',
       });
       setSelectedFile(null);
       setPdfPreviewUrl(null);
@@ -121,6 +124,7 @@ const EditThesisDialog = ({ thesis, open, onOpenChange }: EditThesisDialogProps)
       formData.append('advisors', JSON.stringify(advisorsArray));
       formData.append('program', data.program);
       formData.append('year', data.year.toString());
+      formData.append('shelfLocation', data.shelfLocation);
 
       if (data.file) {
         formData.append('pdf', data.file);
@@ -340,6 +344,24 @@ const EditThesisDialog = ({ thesis, open, onOpenChange }: EditThesisDialogProps)
                     <Textarea 
                       placeholder="Enter thesis abstract" 
                       className="min-h-[120px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Shelf Location */}
+            <FormField
+              control={form.control}
+              name="shelfLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shelf Location</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter shelf location (e.g., Shelf A-1)" 
                       {...field} 
                     />
                   </FormControl>

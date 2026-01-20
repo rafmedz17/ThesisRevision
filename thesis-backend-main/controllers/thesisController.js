@@ -30,8 +30,8 @@ const getTheses = async (req, res) => {
     }
 
     if (search) {
-      conditions.push('(LOWER(title) LIKE LOWER(?) OR LOWER(authors) LIKE LOWER(?))');
-      params.push(`%${search}%`, `%${search}%`);
+      conditions.push('(LOWER(title) LIKE LOWER(?) OR LOWER(authors) LIKE LOWER(?) OR LOWER(abstract) LIKE LOWER(?))');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -92,7 +92,7 @@ const getThesis = async (req, res) => {
 // Create thesis
 const createThesis = async (req, res) => {
   try {
-    const { title, abstract, authors, advisors, department, program, year } = req.body;
+    const { title, abstract, authors, advisors, department, program, year, shelfLocation } = req.body;
 
     // Validation
     if (!title || !department) {
@@ -114,7 +114,7 @@ const createThesis = async (req, res) => {
 
     // Insert thesis
     await query(
-      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -124,7 +124,8 @@ const createThesis = async (req, res) => {
         department,
         program || null,
         year || null,
-        pdfUrl
+        pdfUrl,
+        shelfLocation || null
       ]
     );
 
@@ -147,7 +148,7 @@ const createThesis = async (req, res) => {
 const updateThesis = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, abstract, authors, advisors, department, program, year } = req.body;
+    const { title, abstract, authors, advisors, department, program, year, shelfLocation } = req.body;
 
     // Check if thesis exists
     const existingTheses = await query('SELECT * FROM thesis WHERE id = ?', [id]);
@@ -191,6 +192,10 @@ const updateThesis = async (req, res) => {
     if (year !== undefined) {
       updates.push('year = ?');
       values.push(year);
+    }
+    if (shelfLocation !== undefined) {
+      updates.push('shelfLocation = ?');
+      values.push(shelfLocation);
     }
 
     // Handle file upload (Cloudinary)

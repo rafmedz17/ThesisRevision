@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Insert default admin user
+INSERT INTO users (id, username, password, firstName, lastName, role) VALUES
+('director-uuid-123', 'director', '$2a$10$ucM8i8evMjIH4jIxRtY7Y.pakTSDpTmv57wm5VNw75w/FMNQcbIci', 'Director', 'Admin', 'admin')
+ON DUPLICATE KEY UPDATE username=username;
+
 -- Thesis table
 CREATE TABLE IF NOT EXISTS thesis (
   id VARCHAR(36) PRIMARY KEY,
@@ -26,10 +31,12 @@ CREATE TABLE IF NOT EXISTS thesis (
   program VARCHAR(255),
   year INT,
   pdfUrl VARCHAR(500),
+  shelfLocation VARCHAR(255),
   INDEX idx_department (department),
   INDEX idx_program (program),
   INDEX idx_year (year),
-  INDEX idx_title (title(255))
+  INDEX idx_title (title(255)),
+  INDEX idx_shelf_location (shelfLocation)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Settings table (single row for system-wide settings)
