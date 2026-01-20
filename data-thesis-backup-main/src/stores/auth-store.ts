@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 interface User {
   id: string;
   username: string;
-  role: 'admin' | 'student-assistant';
+  role: 'admin' | 'student-assistant' | 'student';
   firstName: string;
   lastName: string;
 }

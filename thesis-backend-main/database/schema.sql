@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   firstName VARCHAR(100) NOT NULL,
   lastName VARCHAR(100) NOT NULL,
-  role ENUM('admin', 'student-assistant') NOT NULL,
+  role ENUM('admin', 'student-assistant', 'student') NOT NULL,
   INDEX idx_username (username),
   INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

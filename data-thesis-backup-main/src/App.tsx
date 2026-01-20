@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { queryClient } from "@/lib/api";
 import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
+import { AdminProtectedRoute } from "@/components/shared/AdminProtectedRoute";
 import { useSettingsStore } from "@/stores/settings-store";
 
 // Pages
@@ -51,19 +52,27 @@ const App = () => {
             <Route path="/senior-high" element={<SeniorHighDashboard />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
-              path="/admin"
+              path="/personal-settings"
               element={
                 <ProtectedRoute>
-                  <AdminDashboard />
+                  <PersonalSettingsPage />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
               }
             />
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
+                <AdminProtectedRoute>
                   <PersonalSettingsPage />
-                </ProtectedRoute>
+                </AdminProtectedRoute>
               }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

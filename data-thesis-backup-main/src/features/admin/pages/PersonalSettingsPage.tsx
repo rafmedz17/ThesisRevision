@@ -11,6 +11,11 @@ const PersonalSettingsPage = () => {
   const { user } = useAuthStore();
   const { systemSettings } = useSettingsStore();
 
+  const isStudent = user?.role === 'student';
+  const pageTitle = isStudent ? 'Personal Settings' : `${systemSettings.schoolName} Admin Dashboard`;
+  const backPath = isStudent ? '/' : '/admin';
+  const displayName = user?.username;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -52,16 +57,16 @@ const PersonalSettingsPage = () => {
               <GraduationCap className="h-6 w-6" />
             )}
             <div>
-              <h1 className="text-lg font-semibold">{systemSettings.schoolName} Admin Dashboard</h1>
+              <h1 className="text-lg font-semibold">{pageTitle}</h1>
               <p className="text-xs">Academic Research Repository</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium">{user?.email}</p>
+              <p className="text-sm font-medium">{displayName}</p>
               <p className="text-xs capitalize">{user?.role}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(backPath)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>

@@ -171,10 +171,168 @@ const deleteStudentAssistant = async (req, res) => {
   }
 };
 
+const getStudents = async (req, res) => {
+  try {
+    const students = await query(
+      "SELECT * FROM users WHERE role = 'student' ORDER BY firstName, lastName"
+    );
+
+    res.json(students.map(formatUser));
+  } catch (error) {
+    console.error('Get students error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const getStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const students = await query(
+      "SELECT * FROM users WHERE id = ? AND role = 'student'",
+      [id]
+    );
+
+    if (students.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json(formatUser(students[0]));
+  } catch (error) {
+    console.error('Get student error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const createStudent = async (req, res) => {
+  try {
+    const { username, firstName, lastName, password } = req.body;
+
+    // Validation
+    if (!username || !firstName || !lastName || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Check if username already exists
+    const existingUsers = await query('SELECT id FROM users WHERE username = ?', [username]);
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Generate ID
+    const id = generateId();
+
+    // Insert user
+    await query(
+      'INSERT INTO users (id, username, password, firstName, lastName, role) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, username, hashedPassword, firstName, lastName, 'student']
+    );
+
+    // Get created user
+    const newUsers = await query('SELECT * FROM users WHERE id = ?', [id]);
+    const user = newUsers[0];
+
+    res.status(201).json(formatUser(user));
+  } catch (error) {
+    console.error('Create student error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const updateStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, firstName, lastName, password } = req.body;
+
+    // Check if user exists
+    const existingUsers = await query("SELECT * FROM users WHERE id = ? AND role = 'student'", [id]);
+    if (existingUsers.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if username is taken by another user
+    if (username) {
+      const usernameCheck = await query('SELECT id FROM users WHERE username = ? AND id != ?', [username, id]);
+      if (usernameCheck.length > 0) {
+        return res.status(400).json({ error: 'Username already exists' });
+      }
+    }
+
+    // Build update query
+    const updates = [];
+    const values = [];
+
+    if (username) {
+      updates.push('username = ?');
+      values.push(username);
+    }
+    if (firstName) {
+      updates.push('firstName = ?');
+      values.push(firstName);
+    }
+    if (lastName) {
+      updates.push('lastName = ?');
+      values.push(lastName);
+    }
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+
+    await query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    // Get updated user
+    const updatedUsers = await query('SELECT * FROM users WHERE id = ?', [id]);
+    const user = updatedUsers[0];
+
+    res.json(formatUser(user));
+  } catch (error) {
+    console.error('Update student error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const deleteStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists
+    const existingUsers = await query("SELECT * FROM users WHERE id = ? AND role = 'student'", [id]);
+    if (existingUsers.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    await query('DELETE FROM users WHERE id = ?', [id]);
+
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getStudentAssistants,
   getStudentAssistant,
   createStudentAssistant,
   updateStudentAssistant,
-  deleteStudentAssistant
+  deleteStudentAssistant,
+  getStudents,
+  getStudent,
+  createStudent,
+  updateStudent,
+  deleteStudent
 };

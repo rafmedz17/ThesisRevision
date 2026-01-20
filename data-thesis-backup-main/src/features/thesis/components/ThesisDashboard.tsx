@@ -4,6 +4,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Filter } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { useThesisList } from "../hooks/useThesis";
 import { ThesisFilters, Thesis } from "@/types/thesis";
 import SearchInput from "@/components/shared/SearchInput";
@@ -21,6 +22,7 @@ interface ThesisDashboardProps {
 const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
   const { searchQuery } = useUIStore();
   const { programs, fetchPrograms } = useSettingsStore();
+  const { isAuthenticated } = useAuthStore();
   const [filters, setFilters] = useState<ThesisFilters>({
     department,
   });
@@ -317,6 +319,7 @@ const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
         thesis={selectedThesis}
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
+        showPdfPreview={isAuthenticated}
       />
     </div>
   );
