@@ -43,7 +43,7 @@ export const LoginForm = () => {
     setError('');
 
     try {
-      await login(data.username, data.password);
+      await login(data.username, data.password, 'admin');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

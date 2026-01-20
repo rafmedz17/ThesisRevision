@@ -49,7 +49,7 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await login(data.username, data.password);
+      await login(data.username, data.password, 'student');
       toast({
         title: 'Success',
         description: 'Logged in successfully',

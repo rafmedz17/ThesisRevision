@@ -8,13 +8,19 @@ require('dotenv').config();
 const login = async (req, res) => {
   try {
     console.log('🔵 Login attempt received');
-    const { username, password } = req.body;
+    const { username, password, loginType } = req.body;
     console.log('🔵 Username:', username);
     console.log('🔵 Password provided:', password ? 'Yes (length: ' + password.length + ')' : 'No');
+    console.log('🔵 Login type:', loginType);
 
-    if (!username || !password) {
-      console.log('❌ Missing username or password');
-      return res.status(400).json({ error: 'Username and password are required' });
+    if (!username || !password || !loginType) {
+      console.log('❌ Missing username, password, or loginType');
+      return res.status(400).json({ error: 'Username, password, and loginType are required' });
+    }
+
+    if (!['student', 'admin'].includes(loginType)) {
+      console.log('❌ Invalid loginType');
+      return res.status(400).json({ error: 'Invalid loginType. Must be "student" or "admin"' });
     }
 
     // Find user
@@ -43,7 +49,18 @@ const login = async (req, res) => {
 
     console.log('✓ Authentication successful');
 
-    // Generate JWT token
+    // Check role-based restrictions
+    if (loginType === 'student' && user.role !== 'student') {
+      console.log('❌ Role mismatch for student login');
+      return res.status(403).json({ error: 'Access denied. Only students can log in via student portal.' });
+    }
+
+    if (loginType === 'admin' && !['admin', 'student-assistant'].includes(user.role)) {
+      console.log('❌ Role mismatch for admin login');
+      return res.status(403).json({ error: 'Access denied. Only admins and student assistants can log in via admin portal.' });
+    }
+
+    console.log('✓ Authentication and authorization successful');
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
