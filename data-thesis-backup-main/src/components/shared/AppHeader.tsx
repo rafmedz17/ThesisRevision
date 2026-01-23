@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Library, User, LogOut, Settings } from "lucide-react";
+import { Library, User, LogOut, Settings, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -108,6 +108,11 @@ const AppHeader = () => {
                         </p>
                       </div>
                     </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/my-submissions')}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>My Submissions</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/personal-settings')}>
                       <Settings className="mr-2 h-4 w-4" />

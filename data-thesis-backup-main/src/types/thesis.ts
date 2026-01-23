@@ -25,14 +25,15 @@ export interface Thesis {
   pdfUrl?: string;
   shelfLocation?: string;
   status: 'pending' | 'approved' | 'rejected';
+  submittedBy?: string; // User ID of student who submitted
+  createdAt?: string;   // Timestamp
+  updatedAt?: string;   // Timestamp
   // coverImageUrl?: string;
   // downloadCount: number;
   // viewCount: number;
   // category: string;
   // language: string;
   // pages: number;
-  // createdAt: string;
-  // updatedAt: string;
 }
 
 export interface ThesisFilters {

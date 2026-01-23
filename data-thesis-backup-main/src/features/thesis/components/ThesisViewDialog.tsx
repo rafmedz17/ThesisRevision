@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { FileText, Users, Eye} from "lucide-react";
+import { FileText, Users, Eye, MapPin } from "lucide-react";
 import { Thesis } from "@/types/thesis";
 
 interface ThesisViewDialogProps {
@@ -96,6 +96,21 @@ const ThesisViewDialog = ({ thesis, open, onOpenChange, showPdfPreview: showPdfP
                   </div>
                 ))}
               </div>
+
+            <Separator />
+
+            {/* Shelf Location Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="w-5 h-5 text-muted-foreground" />
+                <h3 className="font-semibold">Shelf Location</h3>
+              </div>
+              {thesis.shelfLocation ? (
+                <p className="text-sm">{thesis.shelfLocation}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Not specified</p>
+              )}
+            </div>
 
             {/* PDF Preview Section - Only show if showPdfPreviewProp is true (admin only) */}
             {pdfUrl && showPdfPreviewProp && (

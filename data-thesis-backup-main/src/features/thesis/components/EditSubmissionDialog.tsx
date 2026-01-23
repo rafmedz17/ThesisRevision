@@ -1,12 +1,13 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSettingsStore } from '@/stores/settings-store';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUpdateStudentSubmission } from '../hooks/useStudentSubmissions';
+import { Thesis } from '@/types/thesis';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,10 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, Eye, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { api } from '@/lib/api';
 
 const thesisSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(500, 'Title must be less than 200 characters'),
+  title: z.string().min(5, 'Title must be at least 5 characters').max(500, 'Title must be less than 500 characters'),
   authors: z.string().min(1, 'At least one author is required'),
   advisor: z.string().min(1, 'At least one advisor is required'),
   program: z.string().min(1, 'Program is required'),
@@ -27,62 +27,49 @@ const thesisSchema = z.object({
 
 type ThesisFormData = z.infer<typeof thesisSchema>;
 
-interface SubmitThesisDialogProps {
+interface EditSubmissionDialogProps {
+  thesis: Thesis;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  department: 'college' | 'senior-high';
 }
 
-const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDialogProps) => {
+const EditSubmissionDialog = ({ thesis, open, onOpenChange }: EditSubmissionDialogProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { getProgramsByDepartment } = useSettingsStore();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const availablePrograms = getProgramsByDepartment(department);
-
+  const availablePrograms = getProgramsByDepartment(thesis.department);
   const currentYear = new Date().getFullYear();
+
+  const updateMutation = useUpdateStudentSubmission();
 
   const form = useForm<ThesisFormData>({
     resolver: zodResolver(thesisSchema),
     defaultValues: {
-      title: '',
-      authors: '',
-      advisor: '',
-      program: '',
-      year: currentYear,
-      abstract: '',
+      title: thesis.title || '',
+      authors: thesis.authors.map(a => a.name).join('; ') || '',
+      advisor: thesis.advisors.map(a => a.name).join('; ') || '',
+      program: thesis.program || '',
+      year: thesis.year || currentYear,
+      abstract: thesis.abstract || '',
     },
   });
 
-  const createThesisMutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      const response = await api.post('/thesis/submit', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+  // Reset form when thesis changes
+  useEffect(() => {
+    if (thesis) {
+      form.reset({
+        title: thesis.title || '',
+        authors: thesis.authors.map(a => a.name).join('; ') || '',
+        advisor: thesis.advisors.map(a => a.name).join('; ') || '',
+        program: thesis.program || '',
+        year: thesis.year || currentYear,
+        abstract: thesis.abstract || '',
       });
-      return response.data;
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'Thesis submitted successfully for review.',
-      });
-      queryClient.invalidateQueries({ queryKey: ['theses'] });
-      onOpenChange(false);
-      form.reset();
-      setSelectedFile(null);
-      setPdfPreviewUrl(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.error || 'Failed to submit thesis',
-        variant: 'destructive',
-      });
-    },
-  });
+    }
+  }, [thesis, form, currentYear]);
 
   const onSubmit = (data: ThesisFormData) => {
     const formData = new FormData();
@@ -90,7 +77,7 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
     formData.append('abstract', data.abstract);
     formData.append('authors', JSON.stringify(data.authors.split(';').map((name, index) => ({ id: `author-${index + 1}`, name: name.trim() }))));
     formData.append('advisors', JSON.stringify(data.advisor.split(';').map((name, index) => ({ id: `advisor-${index + 1}`, name: name.trim() }))));
-    formData.append('department', department);
+    formData.append('department', thesis.department);
     formData.append('program', data.program);
     formData.append('year', data.year.toString());
 
@@ -98,7 +85,16 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
       formData.append('pdf', selectedFile);
     }
 
-    createThesisMutation.mutate(formData);
+    updateMutation.mutate(
+      { id: thesis.id, data: formData },
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+          setSelectedFile(null);
+          setPdfPreviewUrl(null);
+        },
+      }
+    );
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,9 +139,9 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Submit Thesis for Review</DialogTitle>
+          <DialogTitle>Edit Thesis Submission</DialogTitle>
           <DialogDescription>
-            Submit your thesis for review by administrators. It will be published after approval.
+            Update your thesis information. Only pending submissions can be edited.
           </DialogDescription>
         </DialogHeader>
 
@@ -261,7 +257,7 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
               />
 
               <div className="space-y-2">
-                <Label>PDF File</Label>
+                <Label>PDF File (Optional - leave empty to keep current PDF)</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <input
                     type="file"
@@ -283,8 +279,13 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
                       <div className="flex flex-col items-center gap-2">
                         <Upload className="h-8 w-8 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">
-                          Click to upload PDF file (Max 50MB)
+                          Click to upload new PDF file (Max 50MB)
                         </p>
+                        {thesis.pdfUrl && (
+                          <p className="text-xs text-muted-foreground">
+                            Current PDF will be kept if no new file is uploaded
+                          </p>
+                        )}
                       </div>
                     )}
                   </label>
@@ -330,12 +331,12 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={createThesisMutation.isPending}
+                  disabled={updateMutation.isPending}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createThesisMutation.isPending}>
-                  {createThesisMutation.isPending ? 'Submitting...' : 'Submit for Review'}
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Updating...' : 'Update Submission'}
                 </Button>
               </div>
             </form>
@@ -346,4 +347,4 @@ const SubmitThesisDialog = ({ open, onOpenChange, department }: SubmitThesisDial
   );
 };
 
-export { SubmitThesisDialog };
+export default EditSubmissionDialog;

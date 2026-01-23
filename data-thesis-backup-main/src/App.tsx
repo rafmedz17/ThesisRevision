@@ -13,6 +13,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import LandingPage from "@/features/landing/pages/LandingPage";
 import CollegeDashboard from "@/features/thesis/pages/CollegeDashboard";
 import SeniorHighDashboard from "@/features/thesis/pages/SeniorHighDashboard";
+import StudentSubmissionsPage from "@/features/thesis/pages/StudentSubmissionsPage";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import PersonalSettingsPage from "@/features/admin/pages/PersonalSettingsPage";
@@ -56,6 +57,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <PersonalSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-submissions"
+              element={
+                <ProtectedRoute>
+                  <StudentSubmissionsPage />
                 </ProtectedRoute>
               }
             />

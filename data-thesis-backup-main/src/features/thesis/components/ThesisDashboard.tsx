@@ -26,6 +26,7 @@ const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
   const { isAuthenticated, user } = useAuthStore();
   const [filters, setFilters] = useState<ThesisFilters>({
     department,
+    status: 'approved', // Only show approved thesis in public view
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);

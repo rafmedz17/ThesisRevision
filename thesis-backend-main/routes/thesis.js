@@ -35,7 +35,8 @@ router.put('/:id/reject', authenticateToken, requireAdminOrAssistant, thesisCont
 router.put('/:id', authenticateToken, requireAdminOrAssistant, upload.single('pdf'), thesisController.updateThesis);
 router.delete('/:id', authenticateToken, requireAdminOrAssistant, thesisController.deleteThesis);
 
-// Student submission route
+// Student submission routes
 router.post('/submit', authenticateToken, upload.single('pdf'), thesisController.submitThesis);
+router.get('/my-submissions', authenticateToken, thesisController.getMySubmissions);
 
 module.exports = router;

@@ -240,6 +240,8 @@ export const useThesisList = (filters: ThesisFilters = {}, page: number = 1, lim
       if (filters.program) params.append('program', filters.program);
       if (filters.year) params.append('year', filters.year.toString());
       if (filters.search) params.append('search', filters.search);
+      // Only show approved thesis in public view
+      params.append('status', 'approved');
 
       const response = await api.get(`/thesis?${params.toString()}`);
       return response.data;

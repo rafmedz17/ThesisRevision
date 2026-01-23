@@ -153,7 +153,7 @@ const createThesis = async (req, res) => {
 // Submit thesis (for students)
 const submitThesis = async (req, res) => {
   try {
-    const { title, abstract, authors, advisors, department, program, year } = req.body;
+    const { title, abstract, authors, advisors, department, program, year, shelfLocation } = req.body;
 
     // Validation
     if (!title || !department) {
@@ -173,9 +173,15 @@ const submitThesis = async (req, res) => {
     const authorsData = typeof authors === 'string' ? JSON.parse(authors) : (authors || []);
     const advisorsData = typeof advisors === 'string' ? JSON.parse(advisors) : (advisors || []);
 
-    // Insert thesis with status pending and shelfLocation N/A
+    // Use provided shelfLocation or default to 'N/A'
+    const finalShelfLocation = shelfLocation || 'N/A';
+
+    // Capture authenticated user ID
+    const submittedBy = req.user.id;
+
+    // Insert thesis with status pending
     await query(
-      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation, status, submittedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -186,8 +192,9 @@ const submitThesis = async (req, res) => {
         program || null,
         year || null,
         pdfUrl,
-        'N/A',
-        'pending'
+        finalShelfLocation,
+        'pending',
+        submittedBy
       ]
     );
 
@@ -220,6 +227,16 @@ const updateThesis = async (req, res) => {
     }
 
     const existingThesis = existingTheses[0];
+
+    // Permission check: Students can only edit their own pending submissions
+    if (req.user.role === 'student') {
+      if (existingThesis.submittedBy !== req.user.id) {
+        return res.status(403).json({ error: 'You can only edit your own submissions' });
+      }
+      if (existingThesis.status !== 'pending') {
+        return res.status(403).json({ error: 'You can only edit pending submissions' });
+      }
+    }
 
     // Build update query
     const updates = [];
@@ -338,6 +355,16 @@ const deleteThesis = async (req, res) => {
 
     const thesis = existingTheses[0];
 
+    // Permission check: Students can only delete their own pending submissions
+    if (req.user.role === 'student') {
+      if (thesis.submittedBy !== req.user.id) {
+        return res.status(403).json({ error: 'You can only delete your own submissions' });
+      }
+      if (thesis.status !== 'pending') {
+        return res.status(403).json({ error: 'You can only delete pending submissions' });
+      }
+    }
+
     // Delete PDF file if exists
     if (thesis.pdfUrl) {
       const filePath = path.join(__dirname, '..', thesis.pdfUrl);
@@ -380,6 +407,44 @@ const getUniqueYears = async (req, res) => {
   }
 };
 
+// Get student's own thesis submissions
+const getMySubmissions = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.id;
+    const offset = (page - 1) * limit;
+
+    // Get total count
+    const countResult = await query(
+      'SELECT COUNT(*) as total FROM thesis WHERE submittedBy = ?',
+      [userId]
+    );
+    const total = countResult[0].total;
+
+    // Get paginated results
+    const theses = await query(
+      'SELECT * FROM thesis WHERE submittedBy = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+      [userId, parseInt(limit), offset]
+    );
+
+    // Parse JSON fields
+    theses.forEach(thesis => {
+      thesis.authors = thesis.authors ? JSON.parse(thesis.authors) : [];
+      thesis.advisors = thesis.advisors ? JSON.parse(thesis.advisors) : [];
+    });
+
+    res.json({
+      data: theses,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Get my submissions error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getTheses,
   getThesis,
@@ -389,5 +454,6 @@ module.exports = {
   approveThesis,
   rejectThesis,
   deleteThesis,
-  getUniqueYears
+  getUniqueYears,
+  getMySubmissions
 };
