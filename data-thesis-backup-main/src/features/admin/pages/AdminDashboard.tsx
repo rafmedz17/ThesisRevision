@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useUIStore } from '@/stores/ui-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle ,} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ import SearchInput from '@/components/shared/SearchInput';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import ThesisManagementTable from '../components/ThesisManagementTable';
 import AddThesisDialog from '../components/AddThesisDialog';
+import { ApprovalDialog } from '../components/ApprovalDialog';
 import { useThesisList } from '@/features/thesis/hooks/useThesis';
 import { ThesisFilters } from '@/types/thesis';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -28,8 +30,27 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { searchQuery } = useUIStore();
+
+  // Debug logging
+  console.log('AdminDashboard - User:', user);
+  console.log('AdminDashboard - Is Authenticated:', !!user);
+
+  // Early return if not authenticated or not admin
+  if (!user) {
+    console.log('AdminDashboard - No user, redirecting to login');
+    return <div>Redirecting to login...</div>;
+  }
+
+  if (user.role !== 'admin' && user.role !== 'student-assistant') {
+    console.log('AdminDashboard - User does not have admin role:', user.role);
+    return <div>Access denied. Admin or student-assistant role required.</div>;
+  }
   const [activeTab, setActiveTab] = useState<'college' | 'senior-high'>('college');
   const [addThesisOpen, setAddThesisOpen] = useState(false);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalDepartment, setApprovalDepartment] = useState<'college' | 'senior-high'>('college');
+  const [pendingCollegeCount, setPendingCollegeCount] = useState(0);
+  const [pendingSeniorHighCount, setPendingSeniorHighCount] = useState(0);
   
   const [collegeFilters, setCollegeFilters] = useState<ThesisFilters>({
     department: 'college',
@@ -118,6 +139,27 @@ const AdminDashboard = () => {
     fetchYears();
   }, []);
 
+  // Fetch pending counts
+  const fetchPendingCounts = async () => {
+    try {
+      const collegeResponse = await api.get('/thesis', {
+        params: { department: 'college', status: 'pending', page: 1, limit: 1 }
+      });
+      setPendingCollegeCount(collegeResponse.data.total || 0);
+
+      const seniorHighResponse = await api.get('/thesis', {
+        params: { department: 'senior-high', status: 'pending', page: 1, limit: 1 }
+      });
+      setPendingSeniorHighCount(seniorHighResponse.data.total || 0);
+    } catch (error) {
+      console.error('Failed to fetch pending counts:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingCounts();
+  }, []);
+
   // Only fetch data for the active tab to improve performance
   const collegeData = useThesisList({
     ...collegeFilters,
@@ -162,27 +204,38 @@ const AdminDashboard = () => {
   const totalSeniorHighThesis = seniorHighTotalUnfiltered;
   const totalThesis = totalCollegeThesis + totalSeniorHighThesis;
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header 
-        className="sticky top-0 z-50 w-full border-b border-border backdrop-blur supports-[backdrop-filter]:bg-background/60"
-        style={
-          systemSettings.headerBackground 
-            ? systemSettings.headerBackground.startsWith('http') 
-              ? {
-                  backgroundImage: `url(${systemSettings.headerBackground})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }
+  // Debug logging
+  console.log('AdminDashboard render:', {
+    user,
+    isAuthenticated: !!user,
+    totalThesis,
+    totalCollegeThesis,
+    totalSeniorHighThesis,
+    systemSettings
+  });
+
+  try {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header 
+          className="sticky top-0 z-50 w-full border-b border-border backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          style={
+            systemSettings.headerBackground 
+              ? systemSettings.headerBackground.startsWith('http') 
+                ? {
+                    backgroundImage: `url(${systemSettings.headerBackground})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }
+                : {
+                    backgroundColor: systemSettings.headerBackground,
+                  }
               : {
-                  backgroundColor: systemSettings.headerBackground,
+                  backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))', // Default subtle gradient
                 }
-            : {
-                backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))', // Default subtle gradient
-              }
-        }
-      >
+          }
+        >
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             {systemSettings.schoolLogo ? (
@@ -286,11 +339,21 @@ const AdminDashboard = () => {
               <span className="flex items-center gap-x-1">
               <GraduationCap className="h-4 w-4" />
               College Thesis
+              {pendingCollegeCount > 0 && (
+                <Badge variant="destructive" className="ml-1">
+                  {pendingCollegeCount}
+                </Badge>
+              )}
               </span>
             </TabsTrigger>
             <TabsTrigger value="senior-high">
               <span className="flex items-center gap-x-1">
               <BookOpen className="h-4 w-4" />Senior High Thesis
+              {pendingSeniorHighCount > 0 && (
+                <Badge variant="destructive" className="ml-1">
+                  {pendingSeniorHighCount}
+                </Badge>
+              )}
               </span>
               </TabsTrigger>
             <TabsTrigger value="settings">
@@ -306,7 +369,14 @@ const AdminDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>College Thesis Management</CardTitle>
-                  <Button onClick={() => setAddThesisOpen(true)}>+ Add New Thesis</Button>
+                  <div className="flex gap-2">
+                    {pendingCollegeCount > 0 && (
+                      <Button variant="outline" onClick={() => { setApprovalDepartment('college'); setApprovalDialogOpen(true); }}>
+                        Pending Approvals ({pendingCollegeCount})
+                      </Button>
+                    )}
+                    <Button onClick={() => setAddThesisOpen(true)}>+ Add New Thesis</Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -369,7 +439,14 @@ const AdminDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Senior High Thesis Management</CardTitle>
-                  <Button onClick={() => setAddThesisOpen(true)}>+ Add New Thesis</Button>
+                  <div className="flex gap-2">
+                    {pendingSeniorHighCount > 0 && (
+                      <Button variant="outline" onClick={() => { setApprovalDepartment('senior-high'); setApprovalDialogOpen(true); }}>
+                        Pending Approvals ({pendingSeniorHighCount})
+                      </Button>
+                    )}
+                    <Button onClick={() => setAddThesisOpen(true)}>+ Add New Thesis</Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -439,8 +516,31 @@ const AdminDashboard = () => {
         onOpenChange={setAddThesisOpen}
         department={activeTab}
       />
+
+      {/* Approval Dialog */}
+      <ApprovalDialog
+        open={approvalDialogOpen}
+        onOpenChange={setApprovalDialogOpen}
+        department={approvalDepartment}
+        onApprovalAction={fetchPendingCounts}
+      />
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('AdminDashboard render error:', error);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Dashboard Error</h1>
+          <p className="text-muted-foreground mb-4">There was an error loading the admin dashboard.</p>
+          <p className="text-sm text-muted-foreground">Check the console for more details.</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reload Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default AdminDashboard;

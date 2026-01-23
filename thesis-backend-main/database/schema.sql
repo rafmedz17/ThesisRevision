@@ -32,11 +32,13 @@ CREATE TABLE IF NOT EXISTS thesis (
   year INT,
   pdfUrl VARCHAR(500),
   shelfLocation VARCHAR(255),
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'approved',
   INDEX idx_department (department),
   INDEX idx_program (program),
   INDEX idx_year (year),
   INDEX idx_title (title(255)),
-  INDEX idx_shelf_location (shelfLocation)
+  INDEX idx_shelf_location (shelfLocation),
+  INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Settings table (single row for system-wide settings)

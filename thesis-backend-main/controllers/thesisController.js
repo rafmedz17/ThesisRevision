@@ -34,6 +34,11 @@ const getTheses = async (req, res) => {
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
+    if (req.query.status) {
+      conditions.push('status = ?');
+      params.push(req.query.status);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Get total count
@@ -114,7 +119,7 @@ const createThesis = async (req, res) => {
 
     // Insert thesis
     await query(
-      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -125,7 +130,8 @@ const createThesis = async (req, res) => {
         program || null,
         year || null,
         pdfUrl,
-        shelfLocation || null
+        shelfLocation || null,
+        'approved'
       ]
     );
 
@@ -140,6 +146,62 @@ const createThesis = async (req, res) => {
     res.status(201).json(thesis);
   } catch (error) {
     console.error('Create thesis error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Submit thesis (for students)
+const submitThesis = async (req, res) => {
+  try {
+    const { title, abstract, authors, advisors, department, program, year } = req.body;
+
+    // Validation
+    if (!title || !department) {
+      return res.status(400).json({ error: 'Title and department are required' });
+    }
+
+    // Generate ID
+    const id = generateId();
+
+    // Handle file upload
+    let pdfUrl = null;
+    if (req.file) {
+      pdfUrl = req.file.path; // Cloudinary URL
+    }
+
+    // Parse authors and advisors
+    const authorsData = typeof authors === 'string' ? JSON.parse(authors) : (authors || []);
+    const advisorsData = typeof advisors === 'string' ? JSON.parse(advisors) : (advisors || []);
+
+    // Insert thesis with status pending and shelfLocation N/A
+    await query(
+      'INSERT INTO thesis (id, title, abstract, authors, advisors, department, program, year, pdfUrl, shelfLocation, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        title,
+        abstract || null,
+        JSON.stringify(authorsData),
+        JSON.stringify(advisorsData),
+        department,
+        program || null,
+        year || null,
+        pdfUrl,
+        'N/A',
+        'pending'
+      ]
+    );
+
+    // Get created thesis
+    const newThesis = await query('SELECT * FROM thesis WHERE id = ?', [id]);
+    const thesis = newThesis[0];
+
+    // Parse JSON fields
+    thesis.authors = thesis.authors ? JSON.parse(thesis.authors) : [];
+    thesis.advisors = thesis.advisors ? JSON.parse(thesis.advisors) : [];
+
+    res.status(201).json(thesis);
+  } catch (error) {
+    console.error('Submit thesis error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -234,6 +296,34 @@ const updateThesis = async (req, res) => {
   }
 };
 
+// Approve thesis
+const approveThesis = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await query('UPDATE thesis SET status = ? WHERE id = ?', ['approved', id]);
+
+    res.json({ message: 'Thesis approved successfully' });
+  } catch (error) {
+    console.error('Approve thesis error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Reject thesis
+const rejectThesis = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await query('UPDATE thesis SET status = ? WHERE id = ?', ['rejected', id]);
+
+    res.json({ message: 'Thesis rejected successfully' });
+  } catch (error) {
+    console.error('Reject thesis error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Delete thesis
 const deleteThesis = async (req, res) => {
   try {
@@ -294,7 +384,10 @@ module.exports = {
   getTheses,
   getThesis,
   createThesis,
+  submitThesis,
   updateThesis,
+  approveThesis,
+  rejectThesis,
   deleteThesis,
   getUniqueYears
 };

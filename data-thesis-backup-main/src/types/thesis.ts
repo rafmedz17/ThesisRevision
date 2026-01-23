@@ -24,8 +24,8 @@ export interface Thesis {
   // keywords: string[];
   pdfUrl?: string;
   shelfLocation?: string;
+  status: 'pending' | 'approved' | 'rejected';
   // coverImageUrl?: string;
-  // status: 'published' | 'draft' | 'under-review';
   // downloadCount: number;
   // viewCount: number;
   // category: string;

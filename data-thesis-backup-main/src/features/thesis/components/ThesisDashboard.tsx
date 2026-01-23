@@ -14,6 +14,7 @@ import ThesisViewDialog from "./ThesisViewDialog";
 import AppHeader from "@/components/shared/AppHeader";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { SubmitThesisDialog } from "@/features/admin/components/SubmitThesisDialog";
 
 interface ThesisDashboardProps {
   department: 'college' | 'senior-high';
@@ -22,7 +23,7 @@ interface ThesisDashboardProps {
 const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
   const { searchQuery } = useUIStore();
   const { programs, fetchPrograms } = useSettingsStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [filters, setFilters] = useState<ThesisFilters>({
     department,
   });
@@ -30,6 +31,7 @@ const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
   const [pageSize, setPageSize] = useState(10);
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [departmentTotal, setDepartmentTotal] = useState<number>(0);
 
@@ -138,11 +140,18 @@ const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
 
       {/* Department & Stats */}
       <div className="container mx-auto px-4 py-4">
-        <div>
-          <h1 className="text-xl font-semibold">{departmentTitle}</h1>
-          <p className="text-sm text-muted-foreground">
-            {departmentTotal} research papers available
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">{departmentTitle}</h1>
+            <p className="text-sm text-muted-foreground">
+              {departmentTotal} research papers available
+            </p>
+          </div>
+          {isAuthenticated && user?.role === 'student' && (
+            <Button onClick={() => setIsSubmitDialogOpen(true)}>
+              Submit Thesis
+            </Button>
+          )}
         </div>
       </div>
 
@@ -320,6 +329,13 @@ const ThesisDashboard = ({ department }: ThesisDashboardProps) => {
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
         showPdfPreview={isAuthenticated}
+      />
+
+      {/* Submit Dialog */}
+      <SubmitThesisDialog
+        open={isSubmitDialogOpen}
+        onOpenChange={setIsSubmitDialogOpen}
+        department={department}
       />
     </div>
   );

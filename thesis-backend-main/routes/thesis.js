@@ -30,7 +30,12 @@ router.get('/:id', thesisController.getThesis);
 
 // Protected routes (admin and student assistant)
 router.post('/', authenticateToken, requireAdminOrAssistant, upload.single('pdf'), thesisController.createThesis);
+router.put('/:id/approve', authenticateToken, requireAdminOrAssistant, thesisController.approveThesis);
+router.put('/:id/reject', authenticateToken, requireAdminOrAssistant, thesisController.rejectThesis);
 router.put('/:id', authenticateToken, requireAdminOrAssistant, upload.single('pdf'), thesisController.updateThesis);
 router.delete('/:id', authenticateToken, requireAdminOrAssistant, thesisController.deleteThesis);
+
+// Student submission route
+router.post('/submit', authenticateToken, upload.single('pdf'), thesisController.submitThesis);
 
 module.exports = router;
