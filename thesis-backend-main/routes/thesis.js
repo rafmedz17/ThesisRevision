@@ -26,17 +26,22 @@ const upload = multer({
 // Public routes (read-only)
 router.get('/', thesisController.getTheses);
 router.get('/years/unique', thesisController.getUniqueYears);
+
+// Student submission routes (must be before /:id route)
+router.post('/submit', authenticateToken, upload.single('pdf'), thesisController.submitThesis);
+router.get('/my-submissions', authenticateToken, thesisController.getMySubmissions);
+
+// Public route for specific thesis (must be after specific routes)
 router.get('/:id', thesisController.getThesis);
 
-// Protected routes (admin and student assistant)
+// Protected routes (admin and student assistant only)
 router.post('/', authenticateToken, requireAdminOrAssistant, upload.single('pdf'), thesisController.createThesis);
 router.put('/:id/approve', authenticateToken, requireAdminOrAssistant, thesisController.approveThesis);
 router.put('/:id/reject', authenticateToken, requireAdminOrAssistant, thesisController.rejectThesis);
-router.put('/:id', authenticateToken, requireAdminOrAssistant, upload.single('pdf'), thesisController.updateThesis);
-router.delete('/:id', authenticateToken, requireAdminOrAssistant, thesisController.deleteThesis);
 
-// Student submission routes
-router.post('/submit', authenticateToken, upload.single('pdf'), thesisController.submitThesis);
-router.get('/my-submissions', authenticateToken, thesisController.getMySubmissions);
+// Update and delete routes - accessible by both students (for own pending submissions) and admins
+// Permission checks are handled in the controller
+router.put('/:id', authenticateToken, upload.single('pdf'), thesisController.updateThesis);
+router.delete('/:id', authenticateToken, thesisController.deleteThesis);
 
 module.exports = router;
