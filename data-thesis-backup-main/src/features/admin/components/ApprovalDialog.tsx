@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 import { Thesis } from '@/types/thesis';
 import ThesisViewDialog from '@/features/thesis/components/ThesisViewDialog';
+import { useApproveThesis, useRejectThesis } from '@/features/thesis/hooks/useThesis';
 
 interface ApprovalDialogProps {
   open: boolean;
@@ -22,6 +23,9 @@ const ApprovalDialog = ({ open, onOpenChange, department, onApprovalAction }: Ap
   const [loading, setLoading] = useState(false);
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+  const approveThesisMutation = useApproveThesis();
+  const rejectThesisMutation = useRejectThesis();
 
   const fetchPendingTheses = useCallback(async () => {
     setLoading(true);
@@ -47,40 +51,22 @@ const ApprovalDialog = ({ open, onOpenChange, department, onApprovalAction }: Ap
     }
   }, [open, fetchPendingTheses]);
 
-  const handleApprove = async (id: string) => {
-    try {
-      await api.put(`/thesis/${id}/approve`);
-      toast({
-        title: 'Success',
-        description: 'Thesis approved successfully.',
-      });
-      fetchPendingTheses();
-      onApprovalAction?.();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to approve thesis.',
-        variant: 'destructive',
-      });
-    }
+  const handleApprove = (id: string) => {
+    approveThesisMutation.mutate(id, {
+      onSuccess: () => {
+        fetchPendingTheses(); // Refetch pending list for this dialog
+        onApprovalAction?.(); // Update parent's pending counts
+      },
+    });
   };
 
-  const handleReject = async (id: string) => {
-    try {
-      await api.put(`/thesis/${id}/reject`);
-      toast({
-        title: 'Success',
-        description: 'Thesis rejected successfully.',
-      });
-      fetchPendingTheses();
-      onApprovalAction?.();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to reject thesis.',
-        variant: 'destructive',
-      });
-    }
+  const handleReject = (id: string) => {
+    rejectThesisMutation.mutate(id, {
+      onSuccess: () => {
+        fetchPendingTheses(); // Refetch pending list for this dialog
+        onApprovalAction?.(); // Update parent's pending counts
+      },
+    });
   };
 
   const handleView = (thesis: Thesis) => {
@@ -137,17 +123,19 @@ const ApprovalDialog = ({ open, onOpenChange, department, onApprovalAction }: Ap
                         variant="default"
                         size="sm"
                         onClick={() => handleApprove(thesis.id)}
+                        disabled={approveThesisMutation.isPending}
                       >
                         <Check className="h-4 w-4 mr-2" />
-                        Approve
+                        {approveThesisMutation.isPending ? 'Approving...' : 'Approve'}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => handleReject(thesis.id)}
+                        disabled={rejectThesisMutation.isPending}
                       >
                         <X className="h-4 w-4 mr-2" />
-                        Reject
+                        {rejectThesisMutation.isPending ? 'Rejecting...' : 'Reject'}
                       </Button>
                     </div>
                   </CardContent>

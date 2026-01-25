@@ -333,3 +333,53 @@ export const useDeleteThesis = () => {
     },
   });
 };
+
+// Approve thesis mutation (admin/student-assistant only)
+export const useApproveThesis = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (thesisId: string) => {
+      const response = await api.put(`/thesis/${thesisId}/approve`);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Thesis approved successfully', {
+        description: 'The thesis is now visible in the public dashboard.',
+      });
+      // Invalidate all thesis-related queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: thesisKeys.all });
+      queryClient.invalidateQueries({ queryKey: thesisKeys.lists() });
+    },
+    onError: (error: any) => {
+      toast.error('Approval failed', {
+        description: error.response?.data?.error || 'Unable to approve the thesis. Please try again.',
+      });
+    },
+  });
+};
+
+// Reject thesis mutation (admin/student-assistant only)
+export const useRejectThesis = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (thesisId: string) => {
+      const response = await api.put(`/thesis/${thesisId}/reject`);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Thesis rejected successfully', {
+        description: 'The thesis has been marked as rejected.',
+      });
+      // Invalidate all thesis-related queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: thesisKeys.all });
+      queryClient.invalidateQueries({ queryKey: thesisKeys.lists() });
+    },
+    onError: (error: any) => {
+      toast.error('Rejection failed', {
+        description: error.response?.data?.error || 'Unable to reject the thesis. Please try again.',
+      });
+    },
+  });
+};
